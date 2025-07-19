@@ -13,8 +13,9 @@ from openpyxl.worksheet.properties import PageSetupProperties
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QTextEdit, QProgressBar, QFrame,
                              QFileDialog, QMessageBox, QListWidget, QListWidgetItem)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QRect
+from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
+from PyQt5.QtWidgets import QDesktopWidget
 
 class DataProcessThread(QThread):
     progress_signal = pyqtSignal(str)
@@ -170,7 +171,7 @@ class DataProcessThread(QThread):
                         '税率': '',
                         '小计价税': total_amount,
                         '部门': '',
-                        '供应商名称': supplier_name
+                        '供应商名称': ''
                     }])
                     
                     supplier_data_with_summary = pd.concat([supplier_data, summary_row], ignore_index=True)
@@ -187,12 +188,14 @@ class DataProcessThread(QThread):
                     ws.page_setup.fitToWidth = 1
                     ws.print_options.horizontalCentered = True
                     ws.print_options.verticalCentered = False
-                    ws.oddFooter.center.text = '\n\n第 &P 页，共 &N 页'
+                    # 设置页脚文本、字体和大小
+                    ws.oddFooter.center.text = '\n第 &P 页，共 &N 页\nSofitel Sanya Leeman Resort'
                     ws.oddFooter.center.size = 11
                     ws.oddFooter.center.font = '微软雅黑'
+
                     
                     # 设置页边距（单位：厘米）
-                    ws.page_margins = PageMargins(left=0.31, right=0.31, top=0.31, bottom=0.39, header=0.31, footer=0.31)
+                    ws.page_margins = PageMargins(left=0.31, right=0.31, top=0.31, bottom=0.39, header=0.31, footer=0.11)
                     
                     # 设置列宽
                     column_widths = {
@@ -210,18 +213,27 @@ class DataProcessThread(QThread):
                         '供应商名称': 36
                     }
                     
-                    # 设置标题
-                    title_row = 1
+                    # 设置酒店名称标题
+                    hotel_title_row = 1
+                    ws.merge_cells(start_row=hotel_title_row, start_column=1, end_row=hotel_title_row, end_column=len(column_widths))
+                    hotel_title_cell = ws.cell(row=hotel_title_row, column=1, value='对账明细表')
+                    hotel_title_cell.font = Font(name='微软雅黑', size=16, bold=True, color='FFFFFF')
+                    hotel_title_cell.fill = PatternFill(start_color='1F497D', end_color='1F497D', fill_type='solid')
+                    hotel_title_cell.alignment = Alignment(horizontal='center', vertical='center')
+                    ws.row_dimensions[hotel_title_row].height = 60
+                    
+                    # 设置对账明细表标题
+                    title_row = 2
                     ws.merge_cells(start_row=title_row, start_column=1, end_row=title_row, end_column=len(column_widths))
-                    title_cell = ws.cell(row=title_row, column=1, value='对账明细表')
-                    title_cell.font = Font(name='Helvetica', size=20, bold=True, color='FFFFFF')
+                    title_cell = ws.cell(row=title_row, column=1, value='')
+                    title_cell.font = Font(name='微软雅黑', size=20, bold=True, color='FFFFFF')
                     title_cell.fill = PatternFill(start_color='1F497D', end_color='1F497D', fill_type='solid')
                     title_cell.alignment = Alignment(horizontal='center', vertical='center')
-                    ws.row_dimensions[title_row].height = 65
+                    ws.row_dimensions[title_row].height = 10
                     
                     # 设置表头样式
-                    header_font = Font(name='Helvetica', size=12, bold=True, color='FFFFFF')
-                    cell_font = Font(name='Helvetica', size=11)
+                    header_font = Font(name='微软雅黑', size=13, bold=True, color='FFFFFF')
+                    cell_font = Font(name='微软雅黑', size=13)
                     
                     # 设置对齐方式
                     center_alignment = Alignment(horizontal='center', vertical='center')
@@ -244,7 +256,7 @@ class DataProcessThread(QThread):
 
                     # 写入表头
                     headers = list(supplier_data.columns)
-                    header_row = 2
+                    header_row = 3
                     for col, header in enumerate(headers, 1):
                         cell = ws.cell(row=header_row, column=col, value=header)
                         cell.font = header_font
@@ -281,7 +293,7 @@ class DataProcessThread(QThread):
                             if has_negative:
                                 cell.fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
                                 if headers[col_idx-1] in ['小计金额', '税额', '小计价税'] and pd.notna(value) and float(value) < 0:
-                                    cell.font = Font(name='Helvetica', size=11, color='FF0000')
+                                    cell.font = Font(name='微软雅黑', size=11, color='FF0000')
                             elif row_fill:
                                 cell.fill = row_fill
                             
@@ -303,7 +315,7 @@ class DataProcessThread(QThread):
                     row_idx = len(supplier_data) + header_row + 1
                     for col_idx, value in enumerate(summary_row.iloc[0], 1):
                         cell = ws.cell(row=row_idx, column=col_idx, value=value)
-                        cell.font = Font(name='Helvetica', size=11, bold=True, color='FFFFFF')
+                        cell.font = Font(name='微软雅黑', size=11, bold=True, color='FFFFFF')
                         cell.fill = PatternFill(start_color='1F497D', end_color='1F497D', fill_type='solid')
                         cell.border = thick_border
                         
@@ -315,20 +327,10 @@ class DataProcessThread(QThread):
                         else:
                             cell.alignment = center_alignment
                     
-                    # 设置页面布局
-                    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
-                    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-                    ws.page_setup.fitToPage = True
-                    ws.page_setup.fitToHeight = 0
-                    ws.page_setup.fitToWidth = 1
-                    ws.print_options.horizontalCentered = True
-                    ws.print_options.verticalCentered = False
-                    ws.oddFooter.center.text = '\n\n第 &P 页，共 &N 页'
-                    ws.oddFooter.center.size = 11
-                    ws.oddFooter.center.font = '微软雅黑'
+                    # 设置重复打印的行
 
                     # 设置重复打印的行
-                    ws.print_title_rows = '1:2'
+                    ws.print_title_rows = '1:3'
                     
                     # 保存文件
                     output_file = os.path.join(year_month_dir, f'{supplier_name}_对账明细.xlsx')
@@ -362,7 +364,7 @@ class QTextEditLogger(logging.Handler):
         super().__init__()
         self.widget = widget
         self.widget.setReadOnly(True)
-        self.widget.setFont(QFont('Helvetica', 10))  # 使用Helvetica字体
+        self.widget.setFont(QFont('Helvetica', 16))  # 使用Helvetica字体
         
         # 设置样式
         self.widget.setStyleSheet("""
@@ -395,15 +397,41 @@ class QTextEditLogger(logging.Handler):
                 self.widget.verticalScrollBar().maximum()
             )
 
+# 程序版本信息
+VERSION = '1.1.16'
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.selected_files = []
+        self.version = VERSION
         self.initUI()
         
+        # 记录应用程序启动日志
+        logging.info(f"应用程序启动，版本：{self.version}")
+        
+    def centerOnScreen(self):
+        """将窗口居中显示在屏幕上"""
+        # 获取屏幕几何信息
+        screen_geometry = QDesktopWidget().availableGeometry()
+        # 计算窗口居中位置
+        x = (screen_geometry.width() - self.width()) // 2
+        y = (screen_geometry.height() - self.height()) // 2
+        # 移动窗口到居中位置
+        self.move(x, y)
+    
+
     def initUI(self):
-        self.setWindowTitle('MC对帐明细工具')
-        self.setGeometry(100, 100, 900, 600)  # 扩大窗口尺寸
+        self.setWindowTitle(f'MC对帐明细工具 v{self.version}')
+        # 设置全局窗口图标
+        icon = QIcon(':/icons/app_icon')
+        QApplication.setWindowIcon(icon)
+        
+        # 设置窗口大小
+        self.resize(1024, 768)
+        
+        # 窗口居中显示
+        self.centerOnScreen()
         
         # 创建主窗口部件和布局
         main_widget = QWidget()
@@ -433,7 +461,7 @@ class MainWindow(QMainWindow):
         # 文件选择标题和按钮区域
         header_layout = QHBoxLayout()
         self.file_label = QLabel('已选择的文件：')
-        self.file_label.setStyleSheet('font-weight: bold; font-size: 14px;')
+        self.file_label.setProperty('title', 'true')
         self.select_button = QPushButton('添加文件')
         self.select_button.setStyleSheet("""
             QPushButton {
@@ -443,6 +471,7 @@ class MainWindow(QMainWindow):
                 padding: 8px 15px;
                 border-radius: 5px;
                 font-weight: bold;
+                font-size: 16px;
             }
             QPushButton:hover {
                 background-color: #357abd;
@@ -463,6 +492,7 @@ class MainWindow(QMainWindow):
                 padding: 8px 15px;
                 border-radius: 5px;
                 font-weight: bold;
+                font-size: 16px;
             }
             QPushButton:hover {
                 background-color: #c0392b;
@@ -516,7 +546,7 @@ class MainWindow(QMainWindow):
         
         progress_layout = QVBoxLayout()
         progress_label = QLabel('处理进度')
-        progress_label.setStyleSheet('font-weight: bold; font-size: 14px;')
+        progress_label.setProperty('title', 'true')
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet("""
@@ -543,8 +573,8 @@ class MainWindow(QMainWindow):
                 padding: 10px 20px;
                 border-radius: 5px;
                 font-weight: bold;
-                font-size: 14px;
                 margin-top: 10px;
+                font-size: 16px;
             }
             QPushButton:hover {
                 background-color: #43a047;
@@ -584,7 +614,7 @@ class MainWindow(QMainWindow):
         
         log_layout = QVBoxLayout()
         log_label = QLabel('处理日志')
-        log_label.setStyleSheet('font-weight: bold; font-size: 14px;')
+        log_label.setProperty('title', 'true')
         self.progress_text = QTextEdit()
         self.progress_text.setReadOnly(True)
         
@@ -596,23 +626,90 @@ class MainWindow(QMainWindow):
         layout.addLayout(split_layout)
         layout.addWidget(log_frame)
         
+        # 添加版权信息
+        copyright_label = QLabel(f'Powered By Cayman Fu 2025 Ver {self.version}')
+        copyright_label.setAlignment(Qt.AlignCenter)
+        copyright_label.setStyleSheet("color: #666666;")
+        layout.addWidget(copyright_label)
+        
         main_widget.setLayout(layout)
         
         # 设置整体样式
         self.setStyleSheet("""
+            * {
+                font-family: "微软雅黑";
+                font-size: 16px;
+            }
+            QPushButton {
+                font-size: 14px;
+            }
             QMainWindow {
                 background-color: #f0f2f5;
+            }
+            QLabel {
+                font-size: 16px;
+            }
+            QLabel[title="true"] {
+                font-weight: bold;
+                font-size: 16px;
+            }
+            QPushButton {
+                font-size: 16px;
+            }
+            QListWidget, QListWidget::item {
+                font-size: 16px;
+            }
+            QTextEdit {
+                font-size: 16px;
+            }
+            QProgressBar {
+                font-size: 16px;
+            }
+            QMessageBox {
+                font-size: 16px;
+            }
+            QMessageBox QLabel {
+                font-size: 16px;
+            }
+            QMessageBox QPushButton {
+                font-size: 16px;
+                min-width: 70px;
+                padding: 6px 12px;
+            }
+            QFileDialog {
+                font-size: 16px;
+            }
+            QFileDialog QLabel {
+                font-size: 16px;
+            }
+            QFileDialog QPushButton {
+                font-size: 16px;
+            }
+            QFileDialog QComboBox {
+                font-size: 16px;
+            }
+            QFileDialog QListView {
+                font-size: 16px;
             }
         """)
     
     def selectFiles(self):
+        # 尝试从上次的位置打开文件对话框
+        last_dir = getattr(self, 'last_directory', '')
+        if not last_dir or not os.path.exists(last_dir):
+            last_dir = ''
+            
         files, _ = QFileDialog.getOpenFileNames(
             self,
             '选择文件',
-            '',
+            last_dir,
             'Excel Files (*.xls *.xlsx);;All Files (*)'
         )
         if files:
+            # 记住最后打开的目录
+            self.last_directory = os.path.dirname(files[0])
+            logging.info(f'选择了{len(files)}个文件')
+            
             # 避免重复添加相同的文件
             new_files = [f for f in files if f not in self.selected_files]
             if new_files:
@@ -620,12 +717,18 @@ class MainWindow(QMainWindow):
                 self.updateFileList()
                 self.process_button.setEnabled(True)
             else:
-                QMessageBox.warning(self, '警告', '所选文件已存在！')
+                warning_box = QMessageBox(self)
+                warning_box.setWindowTitle('警告')
+                warning_box.setText('所选文件已存在！')
+                warning_box.setIcon(QMessageBox.Warning)
+                warning_box.exec_()
     
     def clearFiles(self):
+        """清空文件列表并重置界面状态"""
         self.selected_files.clear()
         self.updateFileList()
         self.process_button.setEnabled(False)
+        logging.info('已清空文件列表')
     
     def updateFileList(self):
         self.file_list.clear()
@@ -634,7 +737,11 @@ class MainWindow(QMainWindow):
     
     def startProcess(self):
         if not self.selected_files:
-            QMessageBox.warning(self, '警告', '请先选择要处理的文件！')
+            warning_box = QMessageBox(self)
+            warning_box.setWindowTitle('警告')
+            warning_box.setText('请先选择要处理的文件！')
+            warning_box.setIcon(QMessageBox.Warning)
+            warning_box.exec_()
             return
         
         self.process_button.setEnabled(False)
@@ -664,20 +771,143 @@ class MainWindow(QMainWindow):
         self.clear_button.setEnabled(True)
         
         if success:
-            reply = QMessageBox.information(self, '完成', '数据处理完成！是否打开输出文件夹？', 
-                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            # 获取处理的统计信息
+            supplier_dir = '供应商对账明细'
+            year_month_dirs = [d for d in os.listdir(supplier_dir) if os.path.isdir(os.path.join(supplier_dir, d))]
+            
+            if year_month_dirs:
+                latest_dir = max(year_month_dirs)  # 获取最新的年月目录
+                full_dir_path = os.path.join(supplier_dir, latest_dir)
+                supplier_files = [f for f in os.listdir(full_dir_path) if f.endswith('.xlsx') and not f.startswith('~$')]
+                
+                stats_message = f'数据处理完成！\n\n处理结果:\n- 生成了{len(supplier_files)}个供应商对账单\n- 保存在目录: {full_dir_path}\n\n是否打开输出文件夹？'
+            else:
+                stats_message = '数据处理完成！是否打开输出文件夹？'
+            
+            info_box = QMessageBox(self)
+            info_box.setWindowTitle('完成')
+            info_box.setText(stats_message)
+            info_box.setIcon(QMessageBox.Information)
+            info_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            info_box.setDefaultButton(QMessageBox.Yes)
+            reply = info_box.exec_()
+            
             if reply == QMessageBox.Yes:
-                os.system('open 供应商对账明细')
+                # 使用跨平台的方法打开文件夹
+                folder_path = os.path.abspath('供应商对账明细')
+                try:
+                    import subprocess
+                    import webbrowser
+                    
+                    # 首先尝试使用平台特定的方法
+                    if sys.platform == 'win32':
+                        os.startfile(folder_path)  # Windows特有方法
+                    elif sys.platform == 'darwin':  # macOS
+                        subprocess.Popen(['open', folder_path])
+                    elif sys.platform.startswith('linux'):  # Linux
+                        subprocess.Popen(['xdg-open', folder_path])
+                    else:
+                        # 如果以上都不适用，尝试使用webbrowser模块
+                        webbrowser.open('file://' + folder_path)
+                except Exception as e:
+                    logging.warning(f'无法打开文件夹：{e}')
+                    warning_box = QMessageBox(self)
+                    warning_box.setWindowTitle('提示')
+                    warning_box.setText(f'无法自动打开文件夹，请手动查看：{folder_path}')
+                    warning_box.setIcon(QMessageBox.Warning)
+                    warning_box.exec_()
             # 处理完成后自动清空文件列表
             self.clearFiles()
+            logging.info('处理完成，界面已重置')
         else:
-            QMessageBox.critical(self, '错误', f'处理失败：{error_msg}')
+            error_box = QMessageBox(self)
+            error_box.setWindowTitle('错误')
+            error_box.setText(f'处理失败：{error_msg}')
+            error_box.setIcon(QMessageBox.Critical)
+            error_box.exec_()
+            logging.error(f'处理失败：{error_msg}')
+
+def ensure_directories():
+    """确保必要的目录结构存在"""
+    required_dirs = ['logs', 'bak', '供应商对账明细']
+    for directory in required_dirs:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            logging.info(f'创建目录: {directory}')
+
+def check_expiration():
+    """
+    检查程序是否过期
+    
+    检查当前日期是否超过2025年12月31日。
+    如果超过，则返回False，表示程序已过期；否则返回True。
+    
+    Returns:
+        bool: 程序是否有效（True表示有效，False表示已过期）
+    """
+    # 获取当前日期
+    current_date = datetime.now()
+    # 设置过期日期为2025年12月31日
+    expiration_date = datetime(2025, 12, 31)
+    
+    # 如果当前日期超过了2025年12月31日，则程序已过期
+    if current_date > expiration_date:
+        return False
+        
+    return True
 
 def main():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    try:
+        # 确保必要的目录存在
+        ensure_directories()
+        
+        # 配置日志
+        log_filename = os.path.join('logs', f'app_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename, encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
+        
+        app = QApplication(sys.argv)
+        # 导入资源文件并设置全局窗口图标
+        import resources
+        icon = QIcon(':/icons/app_icon')
+        app.setWindowIcon(icon)
+        
+        # 确保任务栏图标与应用程序图标一致（Windows平台特定）
+        if sys.platform == 'win32':
+            import ctypes
+            app_id = f'MC.ReconUI.{VERSION}'  # 应用程序ID
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        
+        # 检查程序是否过期
+        if not check_expiration():
+            logging.error('程序版本已过期，需要更新')
+            error_box = QMessageBox(None)
+            error_box.setWindowTitle('版本过期')
+            error_box.setText('版本过低，请联系开发者Cayman更新')
+            error_box.setIcon(QMessageBox.Critical)
+            error_box.exec_()
+            sys.exit(1)
+        else:
+            logging.info('程序版本检查通过')
+        
+        window = MainWindow()
+        window.show()
+        logging.info('应用程序启动成功')
+        sys.exit(app.exec_())
+    except Exception as e:
+        logging.error(f'应用程序启动失败: {e}')
+        error_box = QMessageBox(None)
+        error_box.setWindowTitle('错误')
+        error_box.setText(f'应用程序启动失败: {e}')
+        error_box.setIcon(QMessageBox.Critical)
+        error_box.exec_()
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
