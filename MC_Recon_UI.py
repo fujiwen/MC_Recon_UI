@@ -303,7 +303,10 @@ class DataProcessThread(QThread):
                             elif headers[col_idx-1] in ['实收数量', '单价', '小计金额', '税额', '小计价税']:
                                 cell.alignment = right_alignment
                                 if pd.notna(value) and str(value).strip():
-                                    cell.number_format = '#,##0.00'
+                                    if headers[col_idx-1] in ['税额', '小计价税']:
+                                        cell.number_format = '#,##0.0000'
+                                    else:
+                                        cell.number_format = '#,##0.00'
                             elif headers[col_idx-1] == '税率':
                                 cell.alignment = right_alignment
                                 if pd.notna(value) and str(value).strip():
@@ -323,7 +326,10 @@ class DataProcessThread(QThread):
                         if headers[col_idx-1] in ['小计金额', '税额', '小计价税']:
                             cell.alignment = right_alignment
                             if pd.notna(value) and str(value).strip():
-                                cell.number_format = '#,##0.00'
+                                if headers[col_idx-1] in ['税额', '小计价税']:
+                                    cell.number_format = '#,##0.0000'
+                                else:
+                                    cell.number_format = '#,##0.00'
                         else:
                             cell.alignment = center_alignment
                     
