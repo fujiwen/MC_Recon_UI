@@ -156,7 +156,7 @@ class DataProcessThread(QThread):
                         os.makedirs(year_month_dir)
                     
                     # 计算合计金额
-                    total_amount = round(supplier_data['小计价税'].sum(), 2)
+                    total_amount = supplier_data['小计价税'].sum()
                     
                     # 创建一个包含合计行的新数据框
                     summary_row = pd.DataFrame([{
