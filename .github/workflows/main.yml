@@ -31,10 +31,10 @@ jobs:
         # 编译资源文件
         pyrcc5 resources.qrc -o resources.py
         # 打包应用程序
-        pyinstaller --noconfirm --onefile --windowed --icon=favicon.ico --name="MC对账明细工具" MC_Recon_UI.py
+        pyinstaller --noconfirm --onefile --windowed --icon=favicon.ico --name="mc-recon-tool" MC_Recon_UI.py
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: mc-recon-tool
-        path: dist/MC对账明细工具.exe
+        path: dist/mc-recon-tool.exe
