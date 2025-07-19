@@ -36,5 +36,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MC对账明细工具
+        name: mc-recon-tool
         path: dist/MC对账明细工具.exe
