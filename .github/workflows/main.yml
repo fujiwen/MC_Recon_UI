@@ -24,7 +24,7 @@ jobs:
         python -m pip install --upgrade pip
         # 直接安装依赖，不使用虚拟环境
         pip install -r requirements.txt
-        pip install pyinstaller PyQt5-tools
+        pip install pyinstaller PyQt5-tools xlrd>=2.0.1
         
     - name: Build Application
       run: |
