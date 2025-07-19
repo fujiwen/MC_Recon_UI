@@ -24,10 +24,13 @@ jobs:
         python -m pip install --upgrade pip
         # 直接安装依赖，不使用虚拟环境
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller PyQt5-tools
         
-    - name: Build with PyInstaller
+    - name: Build Application
       run: |
+        # 编译资源文件
+        pyrcc5 resources.qrc -o resources.py
+        # 打包应用程序
         pyinstaller --noconfirm --onefile --windowed --icon=favicon.ico --name="MC对账明细工具" MC_Recon_UI.py
         
     - name: Upload artifact
